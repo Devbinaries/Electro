@@ -1,7 +1,7 @@
 # Electro
 Source files for the compssa 2026 hackathon project
 
-**First things first:
+**First things first**:
 Clone the repository.
 
 ```git

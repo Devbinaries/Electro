@@ -4,7 +4,7 @@ venv/
 # Python
 __pycache__/
 *.pyc
-
+migrations/
 # Environment Variables
 .env
 

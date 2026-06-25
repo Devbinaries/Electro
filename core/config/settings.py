@@ -40,9 +40,19 @@ INSTALLED_APPS = [
     'authentication',
     'voters',
     'elections',
+    'corsheaders',
+    'rest_framework',
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000"
+]
+
+CORS_ALLOW_ALL_HEADERS = True
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -118,6 +128,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = "media/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+MEDIA_ROOT = BASE_DIR / "media"
 
 #CUSTOM SETTINGS
 AUTH_USER_MODEL = "authentication.User"

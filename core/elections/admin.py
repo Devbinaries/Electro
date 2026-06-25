@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Election
+from .models import Election,Candidate,Votes
 
 
 @admin.register(Election)
@@ -33,3 +33,6 @@ class ElectionAdmin(admin.ModelAdmin):
     ordering = (
         "-created_at",
     )
+
+admin.site.register(Candidate)
+admin.site.register(Votes)

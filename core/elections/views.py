@@ -15,7 +15,7 @@ class CandidateViewSet(viewsets.ModelViewSet):
     serializer_class = CandidateSerializer
     lookup_field = "name"
     
-class VotesViewSet(APIView):
+class VotesView(APIView):
     def get(self, request, pk=None):
         votes = Votes.objects.get(pk=pk)
         serializer = VotesSerializer(votes)

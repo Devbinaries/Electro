@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/authentications/token/refresh/', TokenRefreshView.as_view()),
     path('api/authentication/', include("authentication.urls")),
     path('api/voters/', include("voters.urls")),
+    path('api/elections/', include("elections.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

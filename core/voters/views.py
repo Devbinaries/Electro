@@ -115,8 +115,7 @@ class ValidateSessionView(APIView):
     def post(self, request):
         
         serializer = ValidateSessionSerializer(
-            data = request.data
-            
+            data = request.data          
         )
         
         serializer.is_valid(raise_exception=True)

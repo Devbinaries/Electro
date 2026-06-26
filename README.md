@@ -5,7 +5,7 @@ Source files for the compssa 2026 hackathon project
 Clone the repository.
 
 ```git
-git clone "https:github.com/DevBinaries/Demo-Elect.git"
+git clone "https:github.com/DevBinaries/Electro.git"
 ```
 
 **Open in VS Code:**

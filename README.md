@@ -44,7 +44,7 @@ npm install
 ```python
 python manage.py runserver 
 ```
-** The React Project **
+**The React Project:**
 ```node
 npm run dev
 ```

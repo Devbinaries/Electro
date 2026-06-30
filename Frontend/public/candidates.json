@@ -1,0 +1,44 @@
+{
+  "positions": [
+    {
+      "position": "SRC President",
+      "candidates": [
+        {
+          "id": "pres-1",
+          "name": "John Doe",
+          "department": "Computer Science"
+        },
+        {
+          "id": "pres-2",
+          "name": "Jane Smith",
+          "department": "Business Administration"
+        },
+        {
+          "id": "pres-3",
+          "name": "Michael Johnson",
+          "department": "Engineering"
+        }
+      ]
+    },
+    {
+      "position": "Secretary",
+      "candidates": [
+        {
+          "id": "sec-1",
+          "name": "Amina Yusuf",
+          "department": "Political Science"
+        },
+        {
+          "id": "sec-2",
+          "name": "Liam Carter",
+          "department": "Economics"
+        },
+        {
+          "id": "sec-3",
+          "name": "Priya Patel",
+          "department": "Mathematics"
+        }
+      ]
+    }
+  ]
+}

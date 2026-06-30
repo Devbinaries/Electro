@@ -1,0 +1,39 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@electro.com",
+      "password": "admin123",
+      "role": "admin"
+    },
+    {
+      "id": 2,
+      "name": "Officer User",
+      "email": "officer@electro.com",
+      "password": "officer123",
+      "role": "officer"
+    },
+    {
+      "id": 3,
+      "name": "Auditor User",
+      "email": "auditor@electro.com",
+      "password": "auditor123",
+      "role": "auditor"
+    },
+    {
+      "id": 4,
+      "name": "Observer User",
+      "email": "observer@electro.com",
+      "password": "observer123",
+      "role": "observer"
+    },
+    {
+      "id": 5,
+      "name": "Voter User",
+      "email": "voter@electro.com",
+      "password": "voter123",
+      "role": "voter"
+    }
+  ]
+}

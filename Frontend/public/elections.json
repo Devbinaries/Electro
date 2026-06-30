@@ -1,0 +1,216 @@
+[
+  {
+    "id": "1",
+    "name": "SRC Election 2027",
+    "description": "Campus-wide representative election for the 2027 academic year.",
+    "status": "completed",
+    "startDate": "2027-03-01",
+    "endDate": "2027-03-05",
+    "positions": [
+      {
+        "position": "SRC President",
+        "candidates": [
+          {
+            "id": "pres-1",
+            "name": "John Doe",
+            "department": "Computer Science"
+          },
+          {
+            "id": "pres-2",
+            "name": "Jane Smith",
+            "department": "Business Administration"
+          },
+          {
+            "id": "pres-3",
+            "name": "Michael Johnson",
+            "department": "Engineering"
+          }
+        ]
+      },
+      {
+        "position": "Secretary",
+        "candidates": [
+          {
+            "id": "sec-1",
+            "name": "Amina Yusuf",
+            "department": "Political Science"
+          },
+          {
+            "id": "sec-2",
+            "name": "Liam Carter",
+            "department": "Economics"
+          },
+          {
+            "id": "sec-3",
+            "name": "Priya Patel",
+            "department": "Mathematics"
+          }
+        ]
+      },
+      {
+        "position": "Treasurer",
+        "candidates": [
+          {
+            "id": "ter-1",
+            "name": "Danson Yusuf",
+            "department": "Political Science"
+          },
+          {
+            "id": "ter-2",
+            "name": "Gory Carter",
+            "department": "Economics"
+          },
+          {
+            "id": "ter-3",
+            "name": "Milly Patel",
+            "department": "Mathematics"
+          }
+        ]
+      },
+      {
+        "position": "Janitor",
+        "candidates": [
+          {
+            "id": "jan-1",
+            "name": "Danson Yusuf",
+            "department": "Political Science"
+          },
+          {
+            "id": "jan-2",
+            "name": "Gory Carter",
+            "department": "Economics"
+          },
+          {
+            "id": "jan-3",
+            "name": "Milly Patel",
+            "department": "Mathematics"
+          }
+        ]
+      }
+    ],
+    "eligibleVoters": 2500
+  },
+  {
+    "id": "2",
+    "name": "Department Election",
+    "description": "Department-level leadership election across faculties.",
+    "status": "completed",
+    "startDate": "2027-04-10",
+    "endDate": "2027-04-14",
+    "positions": [
+      {
+        "position": "SRC President",
+        "candidates": [
+          {
+            "id": "pres-1",
+            "name": "John Doe",
+            "department": "Computer Science"
+          },
+          {
+            "id": "pres-2",
+            "name": "Jane Smith",
+            "department": "Business Administration"
+          },
+          {
+            "id": "pres-3",
+            "name": "Michael Johnson",
+            "department": "Engineering"
+          }
+        ]
+      },
+      {
+        "position": "Secretary",
+        "candidates": [
+          {
+            "id": "sec-1",
+            "name": "Amina Yusuf",
+            "department": "Political Science"
+          },
+          {
+            "id": "sec-2",
+            "name": "Liam Carter",
+            "department": "Economics"
+          },
+          {
+            "id": "sec-3",
+            "name": "Priya Patel",
+            "department": "Mathematics"
+          }
+        ]
+      }
+    ],
+    "eligibleVoters": 1400
+  },
+  {
+    "id": "1782644383349",
+    "name": "Test",
+    "description": "desc",
+    "status": "completed",
+    "startDate": "2027-01-01",
+    "endDate": "2027-01-02",
+    "positions": [
+      {
+        "position": "Secretary",
+        "candidates": [
+          {
+            "id": "sec-1",
+            "name": "Amina Yusuf",
+            "department": "Political Science"
+          },
+          {
+            "id": "sec-2",
+            "name": "Liam Carter",
+            "department": "Economics"
+          },
+          {
+            "id": "sec-3",
+            "name": "Priya Patel",
+            "department": "Mathematics"
+          }
+        ]
+      }
+    ],
+    "eligibleVoters": 100
+  },
+  {
+    "id": "1782644807947",
+    "name": "wwwwwwwwwww",
+    "description": "wwwwwwwwwwwwwwwwwww",
+    "status": "scheduled",
+    "startDate": "2026-06-29T11:06",
+    "endDate": "2026-06-30T11:06",
+    "positions": [
+      {
+        "position": "SRC President",
+        "candidates": [
+          {
+            "id": "pres-1",
+            "name": "John Doe",
+            "department": "Computer Science"
+          },
+          {
+            "id": "pres-2",
+            "name": "Jane Smith",
+            "department": "Business Administration"
+          },
+          {
+            "id": "pres-3",
+            "name": "Michael Johnson",
+            "department": "Engineering"
+          }
+        ]
+      }
+    ],
+    "eligibleVoters": 34556
+  },
+  {
+    "id": "1782650762551",
+    "name": "Pocar 2028 Elections",
+    "description": "Pocar 2028 Elections: A new dawn !!",
+    "status": "scheduled",
+    "startDate": "2026-07-01T12:45",
+    "endDate": "2026-07-03T12:45",
+    "positions": null,
+    "eligibleVoters": 0
+  }
+]

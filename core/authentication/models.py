@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 # Create your models here.
 
 class UserRole(models.TextChoices):
+    ADMIN = ("ADMIN", "admin")
     ELECTORAL_OFFICER = ("ELECTORAL_OFFICER", "Electoral Officer")
     AUDITOR = ("AUDITOR","Auditor")
     

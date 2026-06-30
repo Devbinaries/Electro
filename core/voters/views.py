@@ -8,6 +8,10 @@ from rest_framework import status
 
 from .models import ElectionVoter
 from .serializers import *
+from elections.models import Election
+from .services import parse_voter_import_file, import_voters_from_rows
+from django.core.exceptions import ValidationError
+from rest_framework.parsers import MultiPartParser, FormParser
 
 
 class SendOTPView(APIView):
@@ -18,7 +22,7 @@ class SendOTPView(APIView):
         try:
             voter = ElectionVoter.objects.get(
                 id=voter_id,
-                election_id = election_id
+                election__election_id = election_id
             )
         except ElectionVoter.DoesNotExist:
             return Response(
@@ -42,6 +46,39 @@ class SendOTPView(APIView):
              },
             status =status.HTTP_201_CREATED
         )
+
+
+class ImportVotersView(APIView):
+    """Endpoint to import voters CSV/XLSX for a given election.
+    Allowed: Super Admin (admin UI) and assigned Electoral Officer via API.
+    """
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, election_id):
+        # permission check: SuperAdmin via admin UI is allowed, for API ensure assigned officer
+        try:
+            election = Election.objects.get(election_id=election_id)
+        except Election.DoesNotExist:
+            return Response({"error":"Election not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        if not (user.is_superuser or (user.role == "ELECTORAL_OFFICER" and election.electoral_officer_id == user.id)):
+            return Response({"error":"Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return Response({"error":"file is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            rows = parse_voter_import_file(uploaded)
+            created = import_voters_from_rows(election=election, rows=rows)
+        except ValidationError as exc:
+            detail = exc.message_dict if hasattr(exc, "message_dict") else exc.messages
+            return Response({"error": detail}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error":"failed to import voters", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"imported": len(created)}, status=status.HTTP_201_CREATED)
         
         
 class VerifyOTPView(APIView):
@@ -49,9 +86,9 @@ class VerifyOTPView(APIView):
     
     def post(self, request, election_id, voter_id):
         try:
-            voter = ElectionVoter.object.get(
+            voter = ElectionVoter.objects.get(
                 id=voter_id,
-                election_id=election_id
+                election__election_id=election_id
             )
         except ElectionVoter.DoesNotExist:
             return Response(
@@ -84,7 +121,7 @@ class CreateVotingSessionView(APIView):
         try:
             voter = ElectionVoter.objects.get(
                 id = voter_id,
-                election_id=election_id
+                election__election_id=election_id
             )
         except ElectionVoter.DoesNotExist:
             return Response(
@@ -94,7 +131,7 @@ class CreateVotingSessionView(APIView):
             
         serializer = CreateVotingSessionSerializer(
             data = {},
-            contet = {"voter": voter}
+            context = {"voter": voter}
         )
         
         serializer.is_valid(raise_exception=True)
@@ -120,7 +157,7 @@ class ValidateSessionView(APIView):
         
         serializer.is_valid(raise_exception=True)
         
-        session = serializer.validates_data["session"]
+        session = serializer.validated_data["session"]
         
         return Response(
             {

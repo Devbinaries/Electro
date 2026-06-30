@@ -15,6 +15,13 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# STATIC_URL = "/static/"
+
+# STATICFILES_DIRS = [
+#     BASE_DIR / 'static',
+# ]
+
+# STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -139,5 +146,25 @@ AUTH_USER_MODEL = "authentication.User"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES" :(
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-    )
+    ),
+    "DEFAULT_THROTTLE_CLASSES" :[
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.AnonRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES":{
+        "user":"100/day",
+        "anon":"10/day",
+        "vote":"1/min",
+    }
 }
+
+
+
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+X_FRAME_OPTIONS = "DENY"
+SECURE_CONTENT_TYPE_NOSNIFF = True

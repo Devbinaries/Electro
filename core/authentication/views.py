@@ -12,13 +12,13 @@ class LoginView(APIView):
     authentication_classes = []
     permission_classes = []
     
-    def post(Self, request):
+    def post(self, request):
         serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_Exception=True)
+        serializer.is_valid(raise_exception=True)
         
-        user = serializer.validated_Data["user"]
+        user = serializer.validated_data["user"]
         
-        refresh = RefeshToken.for_user(user)
+        refresh = RefreshToken.for_user(user)
         
         return Response({
             "access" : str(refresh.access_token),
@@ -27,7 +27,7 @@ class LoginView(APIView):
         }, status=status.HTTP_200_OK)
         
 class MeView(APIView):
-    permission_Classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     
-    def get(delf, request):
+    def get(self, request):
         return Response(UserSerializer(request.user).data)

@@ -9,7 +9,7 @@ class ElectionVoterSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 
-class SendOTPSerializers(serializers.Serializer):
+class SendOTPSerializer(serializers.Serializer):
     voter_id = serializers.UUIDField()
     
     def validate(self, data):
@@ -25,9 +25,9 @@ class VerifyOTPSerializer(serializers.Serializer):
     
     def save(self):
         voter = self.context["voter"]
-        otp = self.validate_data["otp"]
+        otp = self.validated_data["otp"]
         
-        return verify_otp(voter. otp)
+        return verify_otp(voter, otp)
     
 
 class CreateVotingSessionSerializer(serializers.Serializer):

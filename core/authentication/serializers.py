@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 
-from. models import User
+from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,7 +28,7 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("Invalid credentials")
         
         if not user.is_active:
-            raise serializers.ValidetionError("User is inactive")
+            raise serializers.ValidationError("User is inactive")
         
         data["user"] = user
         return data

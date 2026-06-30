@@ -1,8 +1,132 @@
+import csv
+import io
 import secrets
 from datetime import timedelta
+from pathlib import Path
 
+import openpyxl
+from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.utils import timezone
 from .models import *
+
+MAX_VOTER_IMPORT_SIZE = 15 * 1024 * 1024
+REQUIRED_VOTER_IMPORT_COLUMNS = {"student_id", "first_name", "last_name", "email", "department"}
+ALLOWED_VOTER_IMPORT_EXTENSIONS = {".csv", ".xlsx"}
+
+
+def parse_voter_import_file(uploaded_file):
+    if not uploaded_file:
+        raise ValidationError("A file is required.")
+
+    if uploaded_file.size > MAX_VOTER_IMPORT_SIZE:
+        raise ValidationError("The import file must be 15MB or smaller.")
+
+    extension = Path(uploaded_file.name).suffix.lower()
+    if extension not in ALLOWED_VOTER_IMPORT_EXTENSIONS:
+        raise ValidationError("Only CSV (.csv) and Excel (.xlsx) files are allowed.")
+
+    if extension == ".csv":
+        try:
+            uploaded_file.seek(0)
+            decoded = uploaded_file.read().decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(decoded))
+            headers = [header.strip() for header in (reader.fieldnames or [])]
+            rows = list(reader)
+        except Exception as exc:
+            raise ValidationError(f"Invalid CSV file: {exc}") from exc
+    else:
+        try:
+            uploaded_file.seek(0)
+            workbook = openpyxl.load_workbook(uploaded_file, data_only=True, read_only=True)
+            worksheet = workbook.active
+            iterator = worksheet.iter_rows(values_only=True)
+            first_row = next(iterator, None)
+            if not first_row:
+                raise ValidationError("The spreadsheet is empty.")
+            headers = [str(cell).strip() if cell is not None else "" for cell in first_row]
+            rows = [dict(zip(headers, row)) for row in iterator]
+        except ValidationError:
+            raise
+        except Exception as exc:
+            raise ValidationError(f"Invalid Excel file: {exc}") from exc
+
+    missing_columns = REQUIRED_VOTER_IMPORT_COLUMNS - set(headers)
+    if missing_columns:
+        raise ValidationError({"missing_columns": sorted(missing_columns)})
+
+    return rows
+
+
+def import_voters_from_rows(*, election, rows):
+    normalized_rows = []
+    file_student_ids = set()
+    file_emails = set()
+    row_errors = []
+
+    for index, row in enumerate(rows, start=2):
+        student_id = str(row.get("student_id", "")).strip()
+        first_name = str(row.get("first_name", "")).strip()
+        last_name = str(row.get("last_name", "")).strip()
+        email = str(row.get("email", "")).strip().lower()
+        department = str(row.get("department", "")).strip()
+
+        if not all([student_id, first_name, last_name, email, department]):
+            row_errors.append({"row": index, "error": "All required columns must have values."})
+            continue
+
+        if student_id in file_student_ids:
+            row_errors.append({"row": index, "error": f"Duplicate student_id in file: {student_id}"})
+        if email in file_emails:
+            row_errors.append({"row": index, "error": f"Duplicate email in file: {email}"})
+
+        file_student_ids.add(student_id)
+        file_emails.add(email)
+        normalized_rows.append({
+            "student_id": student_id,
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "department": department,
+        })
+
+    if row_errors:
+        raise ValidationError({"row_errors": row_errors})
+
+    existing_student_ids = set(
+        ElectionVoter.objects.filter(
+            election=election,
+            student_id__in=file_student_ids,
+        ).values_list("student_id", flat=True)
+    )
+    existing_emails = set(
+        ElectionVoter.objects.filter(
+            election=election,
+            email__in=file_emails,
+        ).values_list("email", flat=True)
+    )
+
+    if existing_student_ids or existing_emails:
+        raise ValidationError({
+            "existing_student_ids": sorted(existing_student_ids),
+            "existing_emails": sorted(existing_emails),
+        })
+
+    created_voters = []
+    with transaction.atomic():
+        for row in normalized_rows:
+            created_voters.append(
+                ElectionVoter.objects.create(
+                    election=election,
+                    student_id=row["student_id"],
+                    first_name=row["first_name"],
+                    last_name=row["last_name"],
+                    email=row["email"],
+                    department=row["department"],
+                )
+            )
+
+    return created_voters
 
 def generate_otp(length=6):
     """Generate a numeric otp"""
@@ -33,7 +157,7 @@ def create_verification(voter):
     
     if existing_verification:
         raise ValueError(
-            "An active verification cose already exists"
+            "An active verification code already exists"
         )
         
     otp = generate_otp()
@@ -51,15 +175,15 @@ def create_verification(voter):
 
 
 def verify_otp(voter,otp):
-    """Verify Otp"""
+    """Verify OTP"""
     
-    verification =(
+    verification = (
         VoterVerification.objects.filter(
             voter = voter,
-            verification_code_hash = otp,
-            is_used =False
+            verification_code = otp,
+            is_used = False
         )
-        .order_by("created_at")
+        .order_by("-created_at")
         .first()
     )
     
@@ -69,14 +193,14 @@ def verify_otp(voter,otp):
     
     if verification.expires_at < timezone.now():
         raise ValueError(
-            "verification code expired."
+            "Verification code expired."
         )
         
     verification.is_used = True
     verification.save(update_fields=["is_used"])
     
     voter.is_verified = True
-    voter.save(update_fields=["is_used"])
+    voter.save(update_fields=["is_verified"])
     
     return voter
 
@@ -91,13 +215,13 @@ def create_voting_session(voter):
             "Vote already cast."
     )
     
-    if not voter.is_voted:
+    if not voter.is_verified:
         raise ValueError(
-            "verification required"
+            "Verification required"
         )   
         
     existing_session = (
-        VottingSession.objects.filter(
+        VotingSession.objects.filter(
             voter = voter,
             is_active = True
         ).first()
@@ -107,7 +231,7 @@ def create_voting_session(voter):
         return existing_session
     
     
-    session = VottingSession.objects.create(
+    session = VotingSession.objects.create(
         voter=voter,
         expires_at = timezone.now()
         + timedelta(minutes=30)
@@ -119,7 +243,7 @@ def create_voting_session(voter):
 
 def validate_session(token):
     session = (
-        VottingSession.objects.filter(session_token=token, is_active=True).first()
+        VotingSession.objects.filter(session_token=token, is_active=True).first()
     )
     
     if not session:
@@ -134,11 +258,9 @@ def validate_session(token):
         
     return session
 
-def invalidare_session(session):
+def invalidate_session(session):
     session.is_active = False
-    session.save(update_fields=["is_used"])
-    
-    # raise ValueError("Session expired.")
+    session.save(update_fields=["is_active"])
     
     
 def create_vote_receipt(voter):
@@ -148,6 +270,6 @@ def create_vote_receipt(voter):
 
 def mark_voter_voted(voter):
     voter.has_voted = True
-    voter.save(update_fields=["is_used"])
+    voter.save(update_fields=["has_voted"])
     
     

@@ -1,59 +1,15 @@
 from django.db import models
 import uuid
+from django.utils import timezone
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver
+
 # Create your models here.
 from voters.models import ElectionVoter
-
-POSITION_CHOICES = [
-    ("SRC_PRESIDENT","SRC President"),
-    ("SRC_VICE","SRC Vice President"),
-    ("SRC_SECRETARY","SRC Secretary"),
-    ("SRC_ORGANISER","SRC Orangiser"),
-    ("SRC_TREASURER","SRC Treasurer"),
-]
-
-class Votes(models.Model):
-    "A submodel to represent the votes cast in an election."
-    
-    election = models.ForeignKey("Election", on_delete=models.CASCADE)
-    votes = models.IntegerField(auto_created=True,default=0)
-    voter = models.ForeignKey(ElectionVoter,on_delete=models.CASCADE)
-
-
-    class Meta:
-        verbose_name_plural = "Votes"
-
-    def __str__(self):
-        return f'Ballot {self.election_id}'
-    
-    def save(self, force_insert = ..., force_update = ..., using = ..., update_fields = ...):
-        if self.pk:
-            old = Votes.objects.get(pk=self.pk)
-            if old.voter != self.voter:
-                raise ValueError(
-                    "Voter cannot be changed once a vote is cast"
-                )
-            
-        if self.voter.election != self.election:
-            raise ValueError("Voter does not belong to this election")
-
-        if self.voter:
-            self.votes += 1
-
-        if self.votes< 0:
-            raise ValueError("Votes cannot be negative")
-
-        return super().save(force_insert, force_update, using, update_fields)  
-
-
-class Candidate(models.Model):
-    """Candidate to be elected."""
-    name = models.CharField(max_length=50)
-    photo = models.ImageField(upload_to="photos")
-    position = models.CharField(max_length=20,choices=POSITION_CHOICES)
-    votes = models.ForeignKey("Votes", on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f'Candidate{self.name}'
+from .services import log_audit
+from rest_framework.throttling import SimpleRateThrottle
 
 class ElectionStatus(models.TextChoices):
     DRAFT = "DRAFT", "Draft",
@@ -71,20 +27,36 @@ class Election(models.Model):
     
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
+    # Assignment fields
+    electoral_officer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="elections_as_officer",
+        help_text="Electoral officer assigned to manage this election",
+    )
+
+    auditors = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="elections_as_auditor",
+        help_text="Auditors assigned to this election (max 3)",
+    )
     status = models.CharField(max_length=20, choices=ElectionStatus.choices, default=ElectionStatus.DRAFT)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     is_locked =models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at= models.DateTimeField(auto_now=True)
-    candidate = models.ForeignKey(Candidate,on_delete=models.CASCADE,default = None)
+    # candidate = models.ForeignKey(Candidate,on_delete=models.CASCADE,default = None)
     
     
     def save(self, *args, **kwargs):
         if self.pk:
             old = Election.objects.get(pk=self.pk)
             
-            if old.is_lock and (
+            if old.is_locked and (
                 old.title != self.title
                 or old.start_date != self.start_date
                 or old.end_date != self.end_date
@@ -96,14 +68,27 @@ class Election(models.Model):
         super().save(*args, **kwargs)
         
     def lock_election(self):
-        if self.status != ElectionStatus.Draft:
+        if self.status != ElectionStatus.DRAFT:
             raise ValueError(
-                ",Only draft election can be locked"
+                "Only draft election can be locked"
             )
-            
+        # Ensure assignments exist
+        if not self.electoral_officer:
+            raise ValueError("An electoral officer must be assigned before locking the election")
+        if self.auditors.count() < 1:
+            raise ValueError("At least one auditor must be assigned before locking the election")
+        if self.auditors.count() > 3:
+            raise ValueError("No more than 3 auditors can be assigned to an election")
+
         self.status = ElectionStatus.LOCKED
         self.is_locked = True
         self.save(update_fields=["status", "is_locked"])
+        
+        
+        log_audit(
+            election=self,
+            action="ELECTION_LOCKED"
+        )
         
         
     def activate_election(self):
@@ -112,9 +97,19 @@ class Election(models.Model):
             raise ValueError(
                 "Election must be locked before activation"
             )   
-            
-        self.staus = ElectionStatus.ACTIVE
+        # Ensure assignments still valid
+        if not self.electoral_officer:
+            raise ValueError("An electoral officer must be assigned before activation")
+        if self.auditors.count() < 1:
+            raise ValueError("At least one auditor must be assigned before activation")
+
+        self.status = ElectionStatus.ACTIVE
         self.save(update_fields=["status"])
+        
+        log_audit(
+            election=self,
+            action="ELECTION_ACTIVATED"
+        )
         
     def close_election(self):
         
@@ -122,11 +117,94 @@ class Election(models.Model):
             raise ValueError(
                 "only active elections can be closed."
             )
-            
+        # Only allow closing if assignments still present
+        if not self.electoral_officer:
+            raise ValueError("An electoral officer must be assigned before closing the election")
+
         self.status = ElectionStatus.CLOSED
         self.save(update_fields=["status"])
         
+        log_audit(
+            election=self,
+            action="ELECTION_CLOSED"
+        )
+        
     def __str__(self):
-        return f"{self.title} ({self.status})"
+        return f"{self.title} - ({self.status})"
 
- 
+
+@receiver(m2m_changed, sender=Election.auditors.through)
+def enforce_auditor_limit(sender, instance, action, reverse, model, pk_set, **kwargs):
+    if action not in {"post_add", "post_remove", "post_clear"}:
+        return
+
+    if instance.auditors.count() > 3:
+        raise ValidationError("No more than 3 auditors can be assigned to an election")
+
+
+class Position(models.Model):
+    election = models.ForeignKey(Election, on_delete=models.CASCADE, related_name="positions",null=True, blank=True)
+    name = models.CharField(max_length=100,null=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    max_winners = models.PositiveIntegerField(default=1)
+    
+    class Meta:
+        unique_together = ("election", "name")
+        
+    def __str__(self):
+        return f"{self.name} ({self.election.title})"
+    
+    
+class Candidate(models.Model):
+    election = models.ForeignKey(Election, on_delete=models.CASCADE, related_name='candidates', null=True, blank=True)
+    position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name="candidates")
+    name = models.CharField(max_length=100,null=True, blank=True)
+    photo = models.ImageField(upload_to="candidates/", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ("election", "position", "name")
+        
+    def __str__(self):
+        return f"{self.name} - ({self.position.name})"
+    
+
+class Vote(models.Model):
+    election = models.ForeignKey(Election, on_delete=models.CASCADE, related_name="votes",null=True, blank=True)
+    position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name="votes")
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name="votes")
+    voter = models.ForeignKey(ElectionVoter, on_delete=models.CASCADE, related_name="votes")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["election", "position","voter"],
+                name = "one_vote_per_position_per_voter"
+            )
+        ]
+        
+    def __str__(self):
+        return f"{self.voter.student_id}->{self.candidate.name}"
+    
+
+class ElectionAuditLog(models.Model):
+    class ActionType(models.TextChoices):
+        VOTE_CAST = "VOTE_CAST", "Vote Cast"
+        SESSION_CREATED = "SESSION_CREATED", "Session Created"
+        SESSION_INVALIDATED = "SESSION_INVALIDATED", "Session Invalidated"
+        ELECTION_LOCKED = "ELECTION_LOCKED", "Election Locked"
+        ELECTION_ACTIVATED = "ELECTION_ACTIVATED", "Election Activated"
+        ELECTION_CLOSED = "ELECTION_CLOSED", "Election Closed"
+        FRAUD_ATTEMPT = "FRAUD_ATTEMPT", "Fraud Attempt"
+        
+    election = models.ForeignKey("Election", on_delete=models.CASCADE, related_name="audit_logs")
+    voter = models.ForeignKey(
+        ElectionVoter, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    action = models.CharField(max_length=30, choices=ActionType.choices)
+    metadata = models.JSONField(blank=True, null=True)
+    timestamp = models.DateTimeField(default=timezone.now)
+    
+    def __str__(self):
+        return f"{self.action} - {self.election.title}"

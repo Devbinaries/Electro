@@ -40,20 +40,20 @@ class VoterVerification(models.Model):
         return f"{self.voter.student_id}"
     
     
-class VottingSession(models.Model):
-    voter =models.ForeignKey(
+class VotingSession(models.Model):
+    voter = models.ForeignKey(
         ElectionVoter, on_delete=models.CASCADE, related_name="sessions"
     )
     session_token = models.UUIDField(
-        default =uuid.uuid4, unique=True, editable=False
+        default=uuid.uuid4, unique=True, editable=False
     )
     is_active = models.BooleanField(default=True)
-    expires_at= models.DateTimeField()
-    created_at= models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        constraints =[
-            models.UniqueConstraint( fields=["voter"], condition=models.Q(is_active=True), name="one_Active_session_per_voter")
+        constraints = [
+            models.UniqueConstraint(fields=["voter"], condition=models.Q(is_active=True), name="one_Active_session_per_voter")
         ]
         
 class VoteReceipt(models.Model):

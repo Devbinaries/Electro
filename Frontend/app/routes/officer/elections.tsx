@@ -1,22 +1,33 @@
-import { Link, Outlet } from "react-router";
+import { Link } from "react-router";
 import { useEffect, useState } from "react";
 import ElectionStatusBadge from "~/components/dashboard/ElectionStatusBadge";
-import { getElections } from "~/services/election";
-import type { Election } from "~/types/election";
+import { getOfficerElections } from "~/services/election";
+
+type AssignedElection = {
+  election_id: string;
+  title: string;
+  status: string;
+  voter_count: number;
+  candidate_count: number;
+};
 
 export default function ElectionsPage() {
-  const [elections, setElections] = useState<Election[]>([]);
+  const [elections, setElections] = useState<AssignedElection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let mounted = true;
 
-    getElections()
-      .then((list) => {
-        if (mounted) setElections(list);
+    getOfficerElections()
+      .then((summary) => {
+        if (mounted) setElections(summary.assigned_elections ?? []);
       })
       .catch(() => {
-        if (mounted) setElections([]);
+        if (mounted) {
+          setElections([]);
+          setError("Unable to load assigned elections.");
+        }
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -33,10 +44,12 @@ export default function ElectionsPage() {
         <div>
           <h1 className="text-3xl font-bold">Elections</h1>
           <p className="text-sm text-slate-500">
-            Select an election to open its workspace.
+            Select an assigned election to open its workspace.
           </p>
         </div>
       </div>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       {loading ? (
         <div className="rounded-2xl bg-white p-6 text-slate-500 shadow">
@@ -44,39 +57,36 @@ export default function ElectionsPage() {
         </div>
       ) : elections.length === 0 ? (
         <div className="rounded-2xl bg-white p-6 text-slate-500 shadow">
-          No elections available. Create one to get started.
+          No assigned elections available.
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {elections.map((election) => (
             <Link
-              key={election.id}
-              to={`/officer/election/${election.id}`}
+              key={election.election_id}
+              to={`/officer/election/${election.election_id}`}
               className="group h-full rounded-3xl bg-white p-6 shadow transition hover:-translate-y-0.5 hover:shadow-lg"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <h2 className="text-xl font-semibold text-slate-900 break-words">
-                    {election.name}
+                    {election.title}
                   </h2>
-                  <p className="mt-2 text-sm text-slate-500">
-                    {election.startDate} - {election.endDate}
-                  </p>
                 </div>
-                <ElectionStatusBadge status={election.status} />
+                <ElectionStatusBadge status={election.status.toLowerCase() as any} />
               </div>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm text-slate-500">Eligible Voters</p>
                   <p className="mt-2 text-lg font-semibold text-slate-900">
-                    {election.eligibleVoters.toLocaleString()}
+                    {election.voter_count.toLocaleString()}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Positions</p>
+                  <p className="text-sm text-slate-500">Candidates</p>
                   <p className="mt-2 text-lg font-semibold text-slate-900">
-                    {Array.isArray(election.positions) ? election.positions.length : election.positions}
+                    {election.candidate_count}
                   </p>
                 </div>
               </div>
@@ -84,8 +94,6 @@ export default function ElectionsPage() {
           ))}
         </div>
       )}
-
-      {/* <Outlet /> */}
     </div>
   );
 }

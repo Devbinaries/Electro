@@ -1,12 +1,14 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { verifyOtp } from "~/services/voter";
+import { createVotingSession, verifyOtp } from "~/services/voter";
 
 export default function OtpPage() {
   const navigate = useNavigate();
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const electionId = localStorage.getItem("voterElectionId");
+  const voterId = localStorage.getItem("voterId");
 
   const focusInput = (index: number) => {
     inputRefs.current[index]?.focus();
@@ -60,12 +62,21 @@ export default function OtpPage() {
     }
 
     try {
-      const { valid } = await verifyOtp(code);
+      if (!electionId || !voterId) {
+        alert("Voting session details are missing. Please verify your student ID again.");
+        navigate("/voter/verify");
+        return;
+      }
 
-      if (!valid) {
+      const { is_verified } = await verifyOtp({ electionId, voterId, otp: code });
+
+      if (!is_verified) {
         alert("Invalid OTP. Please try again.");
         return;
       }
+
+      const session = await createVotingSession({ electionId, voterId });
+      localStorage.setItem("votingSessionToken", String(session.session_token));
 
       navigate("/voter/ballot");
     } catch (error) {
@@ -110,8 +121,7 @@ export default function OtpPage() {
         </div>
 
         <button
-        //   onClick={handleVerify}
-          onClick={() => navigate("/voter/ballot")}
+          onClick={handleVerify}
           className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
         >
           Verify

@@ -26,8 +26,12 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/authentications/token/refresh/', TokenRefreshView.as_view()),
     path('api/authentication/', include("authentication.urls")),
+    path('api/accounts/', include("accounts.urls")),
     path('api/voters/', include("voters.urls")),
+    path('api/elections/', include("elections.auditor_urls")),
+    path('api/elections/', include("elections.officer_urls")),
     path('api/elections/', include("elections.urls")),
+    path('api/public/', include("elections.public_urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,10 +1,5 @@
-import { Navigate } from "react-router";
+import { RoleLanding } from "~/components/auth/RouteGuards";
 
 export default function Home() {
-  return (
-    <Navigate
-      to="/voter/welcome"
-      replace
-    />
-  );
+  return <RoleLanding />;
 }

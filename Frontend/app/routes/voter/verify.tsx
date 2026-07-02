@@ -1,31 +1,37 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { verifyStudentId } from "~/services/voter";
 
 export default function VerifyPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [studentId, setStudentId] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+
+  const electionId =
+    searchParams.get("election") ?? localStorage.getItem("voterElectionId") ?? undefined;
 
   const handleGetOtp = async () => {
     const trimmedId = studentId.trim();
 
-    if (!/^\d{10}$/.test(trimmedId)) {
-      alert("Please enter a valid 10-digit student ID.");
+    if (!trimmedId) {
+      alert("Please enter your student ID.");
       return;
     }
 
     setIsVerifying(true);
 
     try {
-      const { valid } = await verifyStudentId(trimmedId);
+      const response = await verifyStudentId(trimmedId, electionId ?? undefined);
 
-      if (!valid) {
-        alert("Student ID is not eligible to vote.");
+      if (!response.valid) {
+        alert(response.error ?? "Student ID is not eligible to vote.");
         return;
       }
 
       localStorage.setItem("voterStudentId", trimmedId);
+      localStorage.setItem("voterElectionId", response.electionId);
+      localStorage.setItem("voterId", response.voterId);
       navigate("/voter/otp");
     } catch (error) {
       console.error(error);
@@ -43,7 +49,8 @@ export default function VerifyPage() {
         </h1>
 
         <input
-          type="number"
+          type="text"
+          inputMode="numeric"
           value={studentId}
           onChange={(e) => setStudentId(e.target.value)}
           placeholder="Student ID"

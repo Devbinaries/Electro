@@ -6,6 +6,11 @@ export default function ThankYouPage() {
   const [countdown, setCountdown] = useState(10);
 
   useEffect(() => {
+    localStorage.removeItem("voterStudentId");
+    localStorage.removeItem("voterElectionId");
+    localStorage.removeItem("voterId");
+    localStorage.removeItem("votingSessionToken");
+
     const interval = setInterval(() => {
       setCountdown((prev) => prev - 1);
     }, 1000);

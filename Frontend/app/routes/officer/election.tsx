@@ -1,51 +1,50 @@
 import { NavLink, Outlet, useNavigate, useParams } from "react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ElectionStatusBadge from "~/components/dashboard/ElectionStatusBadge";
-import { getElections } from "~/services/election";
+import { getOfficerElectionDetail } from "~/services/election";
+import { getVisibleElectionTabs } from "~/utils/electionPermissions";
 import type { Election } from "~/types/election";
 
-const tabs = [
-  { name: "Overview", path: "." },
-  { name: "Configuration", path: "configuration" },
-  { name: "Candidates", path: "candidates" },
-  { name: "Voter Snapshot", path: "voter-snapshot" },
-  { name: "Lifecycle", path: "lifecycle" },
-  { name: "Results", path: "results" },
-];
+type ElectionWithLinks = Election & {
+  links?: {
+    voterPortal: string;
+    observerPortal: string;
+  };
+};
 
 export default function ElectionWorkspaceRoute() {
   const navigate = useNavigate();
   const { electionId } = useParams();
 
-  const [election, setElection] = useState<Election | null>(null);
+  const [election, setElection] = useState<ElectionWithLinks | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const visibleTabs = useMemo(
+    () => getVisibleElectionTabs((election?.status ?? "draft") as Election["status"]),
+    [election?.status]
+  );
+
+  const loadElection = useCallback(async () => {
+    if (!electionId) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const detail = await getOfficerElectionDetail(electionId);
+      setElection(detail);
+    } catch {
+      setElection(null);
+      setError("Unable to load election details.");
+    } finally {
+      setLoading(false);
+    }
+  }, [electionId]);
 
   useEffect(() => {
-    let mounted = true;
-
-    async function load() {
-      if (!electionId) return;
-
-      try {
-        const list = await getElections();
-        const found = Array.isArray(list)
-          ? list.find((e) => String(e.id) === String(electionId))
-          : null;
-
-        if (mounted) setElection(found ?? null);
-      } catch (err) {
-        if (mounted) setElection(null);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    load();
-
-    return () => {
-      mounted = false;
-    };
-  }, [electionId]);
+    void loadElection();
+  }, [loadElection]);
 
   if (!electionId) {
     return null;
@@ -72,17 +71,11 @@ export default function ElectionWorkspaceRoute() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
-            onClick={() => navigate("..")}
+            onClick={() => navigate("/officer/elections")}
             className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
             Back to Elections
           </button>
-          {/* <button
-            onClick={() => navigate("/officer/create-election")}
-            className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            New Election
-          </button> */}
         </div>
       </div>
 
@@ -92,13 +85,13 @@ export default function ElectionWorkspaceRoute() {
         </div>
       ) : !election ? (
         <div className="rounded-2xl bg-white p-6 shadow text-red-500">
-          Election not found.
+          {error || "Election not found."}
         </div>
       ) : (
         <>
           <div className="overflow-x-auto rounded-2xl bg-white p-4 shadow">
             <nav className="flex gap-2 md:gap-3">
-              {tabs.map((tab) => (
+              {visibleTabs.map((tab) => (
                 <NavLink
                   key={tab.path}
                   to={tab.path}
@@ -113,7 +106,7 @@ export default function ElectionWorkspaceRoute() {
             </nav>
           </div>
 
-          <Outlet context={{ election, loading }} />
+          <Outlet context={{ election, loading, reloadElection: loadElection }} />
         </>
       )}
     </div>

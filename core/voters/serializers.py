@@ -45,5 +45,16 @@ class ValidateSessionSerializer(serializers.Serializer):
         
         data["session"] = session
         return data
+
+
+class PublicVerifyVoterSerializer(serializers.Serializer):
+    electionId = serializers.UUIDField(required=False)
+    studentId = serializers.CharField()
+
+
+class PublicVerifyOTPSerializer(serializers.Serializer):
+    electionId = serializers.UUIDField()
+    voterId = serializers.UUIDField()
+    otp = serializers.CharField(max_length=10)
     
     

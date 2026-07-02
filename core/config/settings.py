@@ -53,7 +53,7 @@ INSTALLED_APPS = [
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "http://localhost:3000"
+    # "http://localhost:3000"
 ]
 
 CORS_ALLOW_ALL_HEADERS = True
@@ -153,7 +153,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES":{
         "user":"100/day",
-        "anon":"10/day",
+        "anon":"1000/day",
         "vote":"1/min",
     }
 }

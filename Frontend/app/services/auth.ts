@@ -1,43 +1,31 @@
 import api from "./api";
-
-interface MockUser {
-  id: number;
-  name: string;
-  email: string;
-  password: string;
-  role: "admin" | "officer" | "auditor" | "observer" | "voter";
-}
-
-interface MockUserResponse {
-  users: MockUser[];
-}
+import { mapApiUser } from "~/utils/auth";
 
 export const loginUser = async (payload: { email: string; password: string }) => {
-  const hasBackendUrl = Boolean(import.meta.env.VITE_API_URL);
+  const response = await api.post("/api/authentication/login/", payload);
+  const { access, refresh, user, token } = response.data;
+  const accessToken = access ?? token;
 
-  if (!hasBackendUrl) {
-    const response = await fetch("/mock-users.json");
-    const data = (await response.json()) as MockUserResponse;
-
-    const matchedUser = data.users.find(
-      (user) => user.email === payload.email && user.password === payload.password
-    );
-
-    if (!matchedUser) {
-      throw new Error("Invalid credentials");
-    }
-
-    return {
-      token: `mock-${matchedUser.role}-${matchedUser.id}`,
-      user: {
-        id: String(matchedUser.id),
-        name: matchedUser.name,
-        email: matchedUser.email,
-        role: matchedUser.role,
-      },
-    };
+  if (!accessToken || !user) {
+    throw new Error("Invalid authentication response");
   }
 
-  const response = await api.post("/auth/login", payload);
-  return response.data;
+  return {
+    token: accessToken,
+    refresh: refresh ?? null,
+    user: mapApiUser(user),
+  };
+};
+
+export const getCurrentUser = async () => {
+  const response = await api.get("/api/authentication/me/");
+  return mapApiUser(response.data);
+};
+
+export const refreshAccessToken = async (refreshToken: string) => {
+  const response = await api.post("/api/authentications/token/refresh/", {
+    refresh: refreshToken,
+  });
+
+  return response.data.access as string;
 };

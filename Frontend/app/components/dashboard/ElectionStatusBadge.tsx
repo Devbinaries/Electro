@@ -11,7 +11,11 @@ interface Props {
     | "completed"
     | "archived"
     | "scheduled"
-    | "active";
+    | "active"
+    | "DRAFT"
+    | "LOCKED"
+    | "ACTIVE"
+    | "CLOSED";
 }
 
 export default function ElectionStatusBadge({
@@ -44,11 +48,12 @@ export default function ElectionStatusBadge({
       "bg-slate-300 text-slate-600",
   } as const;
 
+  const normalizedStatus = (status || "draft").toLowerCase();
+  const style = styles[normalizedStatus as keyof typeof styles] ?? styles.active;
+
   return (
-    <span
-      className={`rounded-full px-3 py-1 text-xs font-semibold ${styles[status]}`}
-    >
-      {status}
+    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${style}`}>
+      {normalizedStatus}
     </span>
   );
 }

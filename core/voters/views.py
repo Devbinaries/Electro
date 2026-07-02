@@ -3,49 +3,163 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from django.utils import timezone
 
 # Create your views here.
 
 from .models import ElectionVoter
 from .serializers import *
-from elections.models import Election
-from .services import parse_voter_import_file, import_voters_from_rows
+from elections.models import Election, ElectionStatus
+from .services import (
+    create_verification,
+    get_active_election_for_voter_verification,
+    parse_voter_import_file,
+    import_voters_from_rows,
+)
 from django.core.exceptions import ValidationError
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import AllowAny
+
+
+class VerifyStudentIdView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        student_id = str(request.data.get("studentId", "")).strip()
+        if not student_id:
+            return Response({"valid": False, "error": "studentId is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        election_id = request.data.get("electionId")
+        if election_id:
+            active_election = Election.objects.filter(election_id=election_id).first()
+            if not active_election:
+                return Response(
+                    {"valid": False, "error": "Election is not active"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            active_election = Election.objects.order_by("-created_at").first()
+            if not active_election:
+                return Response({"valid": False, "error": "No active election"}, status=status.HTTP_404_NOT_FOUND)
+
+        active_election.sync_status_from_schedule()
+        if active_election.status != ElectionStatus.ACTIVE:
+            return Response(
+                {"valid": False, "error": "Election is not active"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        voter = ElectionVoter.objects.filter(election=active_election, student_id=student_id).first()
+        if not voter:
+            return Response({"valid": False}, status=status.HTTP_200_OK)
+
+        return Response(
+            {
+                "valid": True,
+                "studentId": voter.student_id,
+                "voterId": str(voter.voter_id),
+                "electionId": str(active_election.election_id),
+                "electionTitle": active_election.title,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PublicVerifyVoterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PublicVerifyVoterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        student_id = serializer.validated_data["studentId"].strip()
+        election_id = serializer.validated_data.get("electionId")
+
+        if not student_id:
+            return Response(
+                {"success": False, "error": "Student ID is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            election = get_active_election_for_voter_verification(election_id)
+        except ValueError as exc:
+            return Response(
+                {"success": False, "error": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        voter = ElectionVoter.objects.filter(
+            election=election,
+            student_id=student_id,
+        ).first()
+        if not voter:
+            return Response(
+                {"success": False, "error": "Invalid student ID or voter is not eligible."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if voter.has_voted:
+            return Response(
+                {"success": False, "error": "This voter has already voted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            verification, otp = create_verification(voter)
+        except ValueError as exc:
+            return Response(
+                {"success": False, "error": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        expires_in = max(int((verification.expires_at - timezone.now()).total_seconds()), 0)
+        return Response(
+            {
+                "success": True,
+                "verification_code": otp,
+                "expires_in": expires_in,
+                "voter_id": str(voter.voter_id),
+                "election_id": str(election.election_id),
+                "election_title": election.title,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class SendOTPView(APIView):
-    permission_classes = [IsAuthenticated]
-    
+    permission_classes = [AllowAny]
+
     def post(self, request, election_id, voter_id):
-        
         try:
-            voter = ElectionVoter.objects.get(
-                id=voter_id,
-                election__election_id = election_id
-            )
-        except ElectionVoter.DoesNotExist:
-            return Response(
-                {"error":"Voter not found"},
-                status = status.HTTP_404_NOT_FOUND
-            )
-            
-            
-        serializer =SendOTPSerializer(
-            data=request.data,
-            context={"voter":voter}
-        )
-        
-        serializer.is_valid(raise_exception=True)
-        
-        verification, otp = serializer.save()
-        
-        return Response(
-            {"message" : "OTP sent successfully",
-             "otp" : otp #remember not to include during production
-             },
-            status =status.HTTP_201_CREATED
-        )
+            election = get_active_election_for_voter_verification(election_id)
+        except ValueError as exc:
+            return Response({"success": False, "error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        voter = ElectionVoter.objects.select_related("election").filter(
+            voter_id=voter_id,
+            election=election,
+        ).first()
+        if not voter:
+            return Response({"success": False, "error": "Voter not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if voter.has_voted:
+            return Response({"success": False, "error": "This voter has already voted."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            verification, otp = create_verification(voter)
+        except ValueError as exc:
+            return Response({"success": False, "error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        expires_in = max(int((verification.expires_at - timezone.now()).total_seconds()), 0)
+        return Response({
+            "success": True,
+            "verification_code": otp,
+            "expires_in": expires_in,
+            "voter_id": str(voter.voter_id),
+            "election_id": str(election.election_id),
+            "election_title": election.title,
+        }, status=status.HTTP_200_OK)
 
 
 class ImportVotersView(APIView):
@@ -63,8 +177,11 @@ class ImportVotersView(APIView):
             return Response({"error":"Election not found"}, status=status.HTTP_404_NOT_FOUND)
 
         user = request.user
-        if not (user.is_superuser or (user.role == "ELECTORAL_OFFICER" and election.electoral_officer_id == user.id)):
+        if not (user.role == "ADMIN" or (user.role == "ELECTORAL_OFFICER" and election.electoral_officer_id == user.id)):
             return Response({"error":"Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+        if not election.can_accept_changes():
+            return Response({"error": election.mutation_block_reason()}, status=status.HTTP_403_FORBIDDEN)
 
         uploaded = request.FILES.get("file")
         if not uploaded:
@@ -80,53 +197,152 @@ class ImportVotersView(APIView):
 
         return Response({"imported": len(created)}, status=status.HTTP_201_CREATED)
         
-        
-class VerifyOTPView(APIView):
-    permission_classes = [IsAuthenticated]
-    
+
+class VerifyOTPNestedView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request, election_id, voter_id):
-        try:
-            voter = ElectionVoter.objects.get(
-                id=voter_id,
-                election__election_id=election_id
-            )
-        except ElectionVoter.DoesNotExist:
+        otp = request.data.get("otp", "").strip()
+        
+        if not otp:
             return Response(
-                {
-                    "error" : "Voter not found."
-                },
-                status=status.HTTP_404_NOT_FOUND
+                {"success": False, "error": "OTP is required."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            
-        serializer = VerifyOTPSerializer(
-            data=request.data,
-            context={"voter":voter}
-        )
-        
-        serializer.is_valid(raise_exception=True)
-        voter = serializer.save()
-        
+
+        try:
+            election = get_active_election_for_voter_verification(election_id)
+        except ValueError as exc:
+            return Response(
+                {"success": False, "error": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        voter = ElectionVoter.objects.select_related("election").filter(
+            voter_id=voter_id,
+            election=election,
+        ).first()
+        if not voter:
+            return Response(
+                {"success": False, "error": "Voter not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if voter.has_voted:
+            return Response(
+                {"success": False, "error": "This voter has already voted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            session = VerifyOTPSerializer(
+                data={"otp": otp},
+                context={"voter": voter},
+            )
+            session.is_valid(raise_exception=True)
+            voting_session = session.save()
+        except ValueError as exc:
+            message = str(exc)
+            status_code = status.HTTP_400_BAD_REQUEST
+            if "expired" in message.lower():
+                status_code = status.HTTP_400_BAD_REQUEST
+            return Response(
+                {"success": False, "error": message},
+                status=status_code,
+            )
+
         return Response(
             {
-                "message" : "voter verified successfully",
-                "is_verified" : voter.is_verified
+                "success": True,
+                "is_verified": True,
+                "session_token": str(voting_session.session_token),
+                "expires_at": voting_session.expires_at,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
+        )
+
+        
+class PublicVerifyOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PublicVerifyOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        election_id = serializer.validated_data["electionId"]
+        voter_id = serializer.validated_data["voterId"]
+        otp = serializer.validated_data["otp"]
+
+        try:
+            election = get_active_election_for_voter_verification(election_id)
+        except ValueError as exc:
+            return Response(
+                {"success": False, "error": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        voter = ElectionVoter.objects.select_related("election").filter(
+            voter_id=voter_id,
+            election=election,
+        ).first()
+        if not voter:
+            return Response(
+                {"success": False, "error": "Voter not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if voter.has_voted:
+            return Response(
+                {"success": False, "error": "This voter has already voted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            session = VerifyOTPSerializer(
+                data={"otp": otp},
+                context={"voter": voter},
+            )
+            session.is_valid(raise_exception=True)
+            voting_session = session.save()
+        except ValueError as exc:
+            message = str(exc)
+            status_code = status.HTTP_400_BAD_REQUEST
+            if "expired" in message.lower():
+                status_code = status.HTTP_400_BAD_REQUEST
+            return Response(
+                {"success": False, "error": message},
+                status=status_code,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "session_token": str(voting_session.session_token),
+                "expires_at": voting_session.expires_at,
+            },
+            status=status.HTTP_200_OK,
         )
         
 class CreateVotingSessionView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def post(self, request, election_id, voter_id):
         try:
-            voter = ElectionVoter.objects.get(
-                id = voter_id,
+            voter = ElectionVoter.objects.select_related("election").get(
+                voter_id = voter_id,
                 election__election_id=election_id
             )
         except ElectionVoter.DoesNotExist:
             return Response(
                 {"error":"Voter not found"},
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+        voter.election.sync_status_from_schedule()
+        if voter.election.status != ElectionStatus.ACTIVE:
+            return Response(
+                {"error": "Voting is only allowed during active elections"},
+                status=status.HTTP_403_FORBIDDEN,
             )
             
         serializer = CreateVotingSessionSerializer(
@@ -147,7 +363,7 @@ class CreateVotingSessionView(APIView):
         )
         
 class ValidateSessionView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def post(self, request):
         

@@ -20,7 +20,7 @@ class IsElectoralOfficer(BasePermission):
 class IsAuditor(BasePermission):
     def has_permission(self, request, view):
         return has_role(
-            request.user, [UserRole.AUDITOR]    
+            request.user, [UserRole.AUDITOR, UserRole.ADMIN]
         )
         
 class IsInternalStaff(BasePermission):
@@ -56,7 +56,9 @@ class IsAssignedAuditor(BasePermission):
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.role != UserRole.AUDITOR:
+        if request.user.role not in {UserRole.AUDITOR, UserRole.ADMIN}:
             return False
+        if request.user.role == UserRole.ADMIN:
+            return True
         return obj.auditors.filter(id=request.user.id).exists()
         

@@ -11,6 +11,7 @@ interface Candidate {
 }
 
 interface Position {
+  id: string;
   position: string;
   candidates: Candidate[];
 }
@@ -22,19 +23,22 @@ export default function BallotPage() {
     Record<string, string>
   >({});
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [studentId, setStudentId] = useState<string | null>(null);
+  const [electionId, setElectionId] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedId = localStorage.getItem("voterStudentId");
+    const storedElectionId = localStorage.getItem("voterElectionId");
+    const storedSessionToken = localStorage.getItem("votingSessionToken");
 
-    if (!storedId) {
+    if (!storedElectionId || !storedSessionToken) {
       navigate("/voter/verify");
       return;
     }
 
-    setStudentId(storedId);
+    setElectionId(storedElectionId);
+    setSessionToken(storedSessionToken);
   }, [navigate]);
 
   useEffect(() => {
@@ -70,8 +74,8 @@ export default function BallotPage() {
   };
 
   const handleConfirm = async () => {
-    if (!studentId) {
-      alert("Student ID is missing. Please verify again.");
+    if (!electionId || !sessionToken) {
+      alert("Voting session is missing. Please verify again.");
       navigate("/voter/verify");
       return;
     }
@@ -96,13 +100,26 @@ export default function BallotPage() {
     }>;
 
     try {
-      const result = await submitVote(studentId, selections);
+      for (const selection of selections) {
+        const position = positions.find((item) => item.position === selection.position);
+        const candidate = position?.candidates.find((item) => item.name === selection.candidate);
 
-      if (result?.offline) {
-        alert(
-          "Vote saved locally because the API is unavailable. Your vote will be submitted when the connection is restored."
-        );
+        if (!position || !candidate) {
+          throw new Error(`Unable to resolve the selected candidate for ${selection.position}`);
+        }
+
+        await submitVote({
+          electionId,
+          sessionToken,
+          positionId: position.id,
+          candidateId: candidate.id,
+        });
       }
+
+      localStorage.removeItem("voterStudentId");
+      localStorage.removeItem("voterElectionId");
+      localStorage.removeItem("voterId");
+      localStorage.removeItem("votingSessionToken");
 
       navigate("/voter/thank-you");
     } catch (err: any) {

@@ -8,7 +8,8 @@ import openpyxl
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
-from .models import *
+from elections.models import Election, ElectionStatus
+from .models import ElectionVoter, VoteReceipt, VoterVerification, VotingSession
 
 MAX_VOTER_IMPORT_SIZE = 15 * 1024 * 1024
 REQUIRED_VOTER_IMPORT_COLUMNS = {"student_id", "first_name", "last_name", "email", "department"}
@@ -175,7 +176,7 @@ def create_verification(voter):
 
 
 def verify_otp(voter,otp):
-    """Verify OTP"""
+    """Verify OTP and create a voting session."""
     
     verification = (
         VoterVerification.objects.filter(
@@ -201,8 +202,8 @@ def verify_otp(voter,otp):
     
     voter.is_verified = True
     voter.save(update_fields=["is_verified"])
-    
-    return voter
+
+    return create_voting_session(voter)
 
 
 def create_voting_session(voter):
@@ -220,10 +221,17 @@ def create_voting_session(voter):
             "Verification required"
         )   
         
+    VotingSession.objects.filter(
+        voter=voter,
+        is_active=True,
+        expires_at__lt=timezone.now()
+    ).update(is_active=False)
+
     existing_session = (
         VotingSession.objects.filter(
             voter = voter,
-            is_active = True
+            is_active = True,
+            expires_at__gt=timezone.now()
         ).first()
     )
     
@@ -257,6 +265,29 @@ def validate_session(token):
         )
         
     return session
+
+
+def get_active_election_for_voter_verification(election_id=None):
+    queryset = Election.objects.all().order_by("-created_at")
+    if election_id:
+        election = queryset.filter(election_id=election_id).first()
+        if not election:
+            raise ValueError("Election is not active")
+    else:
+        election = queryset.first()
+        if not election:
+            raise ValueError("No active election")
+
+    election.sync_status_from_schedule()
+    if election.status != ElectionStatus.ACTIVE:
+        if election_id:
+            raise ValueError("Election is not active")
+        for candidate in queryset.exclude(pk=election.pk):
+            candidate.sync_status_from_schedule()
+            if candidate.status == ElectionStatus.ACTIVE:
+                return candidate
+        raise ValueError("No active election")
+    return election
 
 def invalidate_session(session):
     session.is_active = False

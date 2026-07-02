@@ -53,6 +53,9 @@ class Election(models.Model):
     
     
     def save(self, *args, **kwargs):
+        if self.start_date and self.end_date and self.start_date >= self.end_date:
+            raise ValidationError("Start date must be before end date")
+
         if self.pk:
             old = Election.objects.get(pk=self.pk)
             
@@ -78,7 +81,7 @@ class Election(models.Model):
         if self.auditors.count() < 1:
             raise ValueError("At least one auditor must be assigned before locking the election")
         if self.auditors.count() > 3:
-            raise ValueError("No more than 3 auditors can be assigned to an election")
+            raise ValidationError("No more than 3 auditors can be assigned to an election")
 
         self.status = ElectionStatus.LOCKED
         self.is_locked = True
@@ -91,17 +94,18 @@ class Election(models.Model):
         )
         
         
-    def activate_election(self):
+    def activate_election(self, *, require_validations=True):
         
         if self.status != ElectionStatus.LOCKED:
             raise ValueError(
                 "Election must be locked before activation"
             )   
-        # Ensure assignments still valid
-        if not self.electoral_officer:
-            raise ValueError("An electoral officer must be assigned before activation")
-        if self.auditors.count() < 1:
-            raise ValueError("At least one auditor must be assigned before activation")
+        if require_validations:
+            # Ensure assignments still valid
+            if not self.electoral_officer:
+                raise ValueError("An electoral officer must be assigned before activation")
+            if self.auditors.count() < 1:
+                raise ValueError("At least one auditor must be assigned before activation")
 
         self.status = ElectionStatus.ACTIVE
         self.save(update_fields=["status"])
@@ -110,16 +114,20 @@ class Election(models.Model):
             election=self,
             action="ELECTION_ACTIVATED"
         )
+
+    def sync_status_from_schedule(self, *, now=None):
+        return self.status
         
-    def close_election(self):
+    def close_election(self, *, require_validations=True):
         
         if self.status != ElectionStatus.ACTIVE:
             raise ValueError(
                 "only active elections can be closed."
             )
-        # Only allow closing if assignments still present
-        if not self.electoral_officer:
-            raise ValueError("An electoral officer must be assigned before closing the election")
+        if require_validations:
+            # Only allow closing if assignments still present
+            if not self.electoral_officer:
+                raise ValueError("An electoral officer must be assigned before closing the election")
 
         self.status = ElectionStatus.CLOSED
         self.save(update_fields=["status"])
@@ -128,6 +136,18 @@ class Election(models.Model):
             election=self,
             action="ELECTION_CLOSED"
         )
+
+    def can_accept_changes(self):
+        return self.status == ElectionStatus.DRAFT
+
+    def mutation_block_reason(self):
+        if self.status == ElectionStatus.LOCKED:
+            return "This election is locked. Configuration changes are not allowed."
+        if self.status == ElectionStatus.ACTIVE:
+            return "This election is active. Configuration changes are not allowed."
+        if self.status == ElectionStatus.CLOSED:
+            return "This election is closed. No modifications are allowed."
+        return None
         
     def __str__(self):
         return f"{self.title} - ({self.status})"

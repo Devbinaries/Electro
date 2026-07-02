@@ -2,25 +2,31 @@ import { NavLink, useNavigate } from "react-router";
 import { LogOut } from "lucide-react";
 
 import { navigation } from "~/utils/navigation";
-import { useAuthStore } from "~/store/authStore";
+import { roleLabels } from "~/utils/auth";
+import { useAuthStore, type UserRole } from "~/store/authStore";
+
+const dashboardRoles = new Set<UserRole>(["admin", "officer", "auditor"]);
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
-  const role = (user?.role ?? "observer") as keyof typeof navigation;
-  const links = navigation[role] ?? navigation.observer;
+  const role = user?.role;
+  const links =
+    role && dashboardRoles.has(role)
+      ? navigation[role as keyof typeof navigation]
+      : [];
 
   return (
     <aside className="hidden md:flex w-72 flex-col border-r bg-white">
       <div className="border-b p-6">
-        <h1 className="text-2xl font-bold">
-          Electro
-        </h1>
-
-        <p className="text-sm text-slate-500">
-          Election Platform
-        </p>
+        <h1 className="text-2xl font-bold">Electro</h1>
+        <p className="text-sm text-slate-500">Election Platform</p>
+        {role && dashboardRoles.has(role) && (
+          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-blue-600">
+            {roleLabels[role]}
+          </p>
+        )}
       </div>
 
       <nav className="flex-1 p-4">
@@ -29,29 +35,17 @@ export default function Sidebar() {
             const Icon = link.icon;
 
             return (
-              <li key={link.name}>
+              <li key={link.path}>
                 <NavLink
                   to={link.path}
+                  end={link.path === "/admin" || link.path === "/officer" || link.path === "/auditor"}
                   className={({ isActive }) =>
-                    `
-                    flex
-                    items-center
-                    gap-3
-                    rounded-xl
-                    px-4
-                    py-3
-                    transition
-
-                    ${
-                      isActive
-                        ? "bg-blue-600 text-white"
-                        : "hover:bg-slate-100"
-                    }
-                  `
+                    `flex items-center gap-3 rounded-xl px-4 py-3 transition ${
+                      isActive ? "bg-blue-600 text-white" : "hover:bg-slate-100"
+                    }`
                   }
                 >
                   <Icon size={18} />
-
                   {link.name}
                 </NavLink>
               </li>
@@ -62,8 +56,10 @@ export default function Sidebar() {
 
       <div className="border-t-blue-200 p-4">
         <button
-          // onClick={logout}
-          onClick={() => {logout(); navigate("/auth/login");}}
+          onClick={() => {
+            logout();
+            navigate("/auth/login");
+          }}
           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-red-600 hover:bg-red-50"
         >
           <LogOut size={18} />

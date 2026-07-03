@@ -54,6 +54,10 @@ export function RequireRole({
     return <Navigate to="/auth/login" replace state={{ from: location }} />;
   }
 
+  if (user.must_change_password && location.pathname !== "/auth/change-password") {
+    return <Navigate to="/auth/change-password" replace />;
+  }
+
   if (!allowedRoles.includes(user.role)) {
     return <Navigate to={user.role === "unknown" ? "/unauthorized" : getDashboardPathForRole(user.role)} replace />;
   }

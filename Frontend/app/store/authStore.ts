@@ -14,6 +14,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  must_change_password: boolean;
 }
 
 interface AuthState {

@@ -10,6 +10,10 @@ export default [
     "/auth/login",
     "routes/auth/login.tsx"
   ),
+  route(
+    "/auth/change-password",
+    "routes/auth/change-password.tsx"
+  ),
 
   route(
     "/voter/welcome",

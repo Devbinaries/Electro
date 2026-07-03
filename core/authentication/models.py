@@ -10,6 +10,7 @@ class UserRole(models.TextChoices):
 class User(AbstractUser):
     role = models.CharField(max_length=30, choices=UserRole.choices, help_text="Internal system role.")
     email = models.EmailField(max_length=100, unique=True)
+    must_change_password = models.BooleanField(default=True, help_text="Designates whether the user must change their password on login.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

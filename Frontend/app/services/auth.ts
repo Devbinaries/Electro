@@ -29,3 +29,12 @@ export const refreshAccessToken = async (refreshToken: string) => {
 
   return response.data.access as string;
 };
+
+export const changePassword = async (payload: Record<string, string>) => {
+  const response = await api.post("/api/authentication/change-password/", payload);
+  const { user } = response.data;
+  return {
+    message: response.data.message,
+    user: user ? mapApiUser(user) : null,
+  };
+};

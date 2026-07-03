@@ -11,6 +11,7 @@ class CustomUserAdmin(UserAdmin):
         "email",
         "username",
         "role",
+        "must_change_password",
         "is_active",
         "is_staff",
         "created_at",
@@ -36,6 +37,7 @@ class CustomUserAdmin(UserAdmin):
             {
                 "fields": (
                     "role",
+                    "must_change_password",
                     "created_at",
                     "updated_at",
                 )

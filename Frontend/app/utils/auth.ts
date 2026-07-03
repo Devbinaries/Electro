@@ -89,9 +89,11 @@ export const mapApiUser = (user: {
   role?: string;
   first_name?: string;
   last_name?: string;
+  must_change_password?: boolean;
 }): User => ({
   id: String(user.id),
   name: getDisplayName(user),
   email: user.email ?? user.username ?? "",
   role: normalizeRole(user.role),
+  must_change_password: !!user.must_change_password,
 });

@@ -7,7 +7,6 @@ Clone the repository.
 git clone "https:github.com/DevBinaries/Electro.git"
 ```
 
-
 ### Project Runtime Environments
 * Node js
 * Python 
@@ -50,7 +49,7 @@ http://127.0.0.1:8000/admin/
 
 ####
 SETUP AND START FRONTEND
-```cd into "Frontend"```
+```cd into Frontend```
 
 ````install react packages && dependencies````
 npm install 
@@ -63,6 +62,7 @@ npm run dev
 ```User Creation & Management```
 All users are created by superuser (Admin) via the admin dashboard.
 Each user is given a role 
+
 --Superuser / Admin ---
 Manages the entire system.
 1. Creates and manages users
@@ -80,7 +80,7 @@ Manages the entire system.
 
 
 --Auditor---
-*REsponsible for tracking and checking lecetion for malicious activities
+*Responsible for tracking and checking location for malicious activities
 1. They are responsible for generating reports on elections.
 2. Monitor logs on an election
 

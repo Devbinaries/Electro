@@ -26,12 +26,12 @@ export default function ThankYouPage() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-2xl rounded-3xl bg-white shadow-xl p-8 md:p-12 text-center">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-3 py-6 sm:px-4">
+      <div className="w-full max-w-2xl rounded-3xl bg-white p-5 text-center shadow-xl sm:p-8 md:p-12">
         {/* Success Icon */}
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 sm:h-20 sm:w-20">
           <svg
-            className="h-10 w-10 text-green-600"
+            className="h-8 w-8 text-green-600 sm:h-10 sm:w-10"
             fill="none"
             stroke="currentColor"
             strokeWidth={3}
@@ -46,7 +46,7 @@ export default function ThankYouPage() {
         </div>
 
         {/* Title */}
-        <h1 className="mt-6 text-3xl md:text-4xl font-bold text-slate-900">
+        <h1 className="mt-6 text-2xl font-bold text-slate-900 sm:text-3xl md:text-4xl">
           Vote Successfully Cast
         </h1>
 
@@ -70,7 +70,7 @@ export default function ThankYouPage() {
         {/* Manual Button */}
         <button
           onClick={() => navigate("/")}
-          className="mt-8 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+          className="mt-8 w-full rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 sm:w-auto"
         >
           Return Home
         </button>

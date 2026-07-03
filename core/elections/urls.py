@@ -8,6 +8,7 @@ from .api.admin import (
     AdminElectionStatusView,
     AdminElectionListView,
 )
+from .api.auditor_dashboard import AuditorAuditReportExportView
 
 router = DefaultRouter()
 router.register(r'elections', ElectionViewSet, basename='election')
@@ -21,5 +22,7 @@ urlpatterns = [
     path('admin/elections/create/', AdminElectionCreateView.as_view(), name='admin-elections-create'),
     path('admin/elections/<int:election_id>/', AdminElectionDetailView.as_view(), name='admin-elections-detail'),
     path('admin/elections/<int:election_id>/status/', AdminElectionStatusView.as_view(), name='admin-elections-status'),
+    path('auditor/elections/<uuid:election_id>/audit-report/export/', AuditorAuditReportExportView.as_view(), name='auditor-audit-report-export-main'),
+    path('elections/<uuid:election_id>/audit-report/export/', AuditorAuditReportExportView.as_view(), name='auditor-audit-report-export-router-safe'),
     path('', include(router.urls)),
 ]

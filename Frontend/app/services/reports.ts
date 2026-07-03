@@ -5,7 +5,7 @@ export async function downloadAuditReport(
   format: "pdf" | "csv" | "xlsx"
 ) {
   const response = await api.get(
-    `/api/elections/elections/${electionId}/audit-report/export/`,
+    `/api/elections/auditor/elections/${electionId}/audit-report/export/`,
     {
       params: { format },
       responseType: "blob",
@@ -22,9 +22,16 @@ export async function downloadAuditReport(
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `audit_report_${electionId}.${format}`;
+  link.download = getDownloadFilename(response.headers["content-disposition"], `audit_report_${electionId}.${format}`);
   document.body.appendChild(link);
   link.click();
   link.remove();
   window.URL.revokeObjectURL(url);
+}
+
+function getDownloadFilename(contentDisposition: unknown, fallback: string) {
+  if (typeof contentDisposition !== "string") return fallback;
+
+  const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  return filenameMatch?.[1] ?? fallback;
 }

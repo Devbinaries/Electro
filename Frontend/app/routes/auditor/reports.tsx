@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Download, FileSpreadsheet, FileText } from "lucide-react";
 import ChartCard from "~/components/charts/ChartCard";
 import ChartContainer from "~/components/charts/ChartContainer";
 import EmptyState from "~/components/dashboard/EmptyState";
@@ -19,7 +18,6 @@ import {
   getAuditorFraudLogs,
   getAuditorSummary,
 } from "~/services/election";
-import { downloadAuditReport } from "~/services/reports";
 import { getApiErrorMessage } from "~/utils/apiError";
 
 export default function ReportsPage() {
@@ -29,7 +27,6 @@ export default function ReportsPage() {
   const [analytics, setAnalytics] = useState<Awaited<ReturnType<typeof getAuditorAnalytics>> | null>(null);
   const [fraudLogs, setFraudLogs] = useState<Array<{ id: number; action: string; metadata_explanation?: string | null; timestamp: string }>>([]);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -81,18 +78,6 @@ export default function ReportsPage() {
     };
   }, [selectedElectionId]);
 
-  const handleExport = async (format: "pdf" | "csv" | "xlsx") => {
-    if (!selectedElectionId) return;
-    setExporting(format);
-    try {
-      await downloadAuditReport(selectedElectionId, format);
-    } catch (err) {
-      setError(getApiErrorMessage(err, "Export failed."));
-    } finally {
-      setExporting(null);
-    }
-  };
-
   const integritySummary = useMemo(
     () => [
       { label: "Audit Events", value: analytics?.audit_events ?? 0 },
@@ -109,40 +94,9 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Audit Reports</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Election integrity reports and downloadable exports.
+            Election integrity reports and audit activity.
           </p>
         </div>
-        {selectedElectionId && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => handleExport("pdf")}
-              disabled={!!exporting}
-              className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-            >
-              <FileText className="h-4 w-4" />
-              {exporting === "pdf" ? "Exporting…" : "PDF"}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleExport("csv")}
-              disabled={!!exporting}
-              className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-            >
-              <Download className="h-4 w-4" />
-              {exporting === "csv" ? "Exporting…" : "CSV"}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleExport("xlsx")}
-              disabled={!!exporting}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              {exporting === "xlsx" ? "Exporting…" : "Excel"}
-            </button>
-          </div>
-        )}
       </div>
 
       {error && <p className="rounded-xl bg-red-50 p-4 text-sm text-red-600">{error}</p>}

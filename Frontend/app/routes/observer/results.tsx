@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 
+import ChartCard from "~/components/charts/ChartCard";
+import ChartContainer from "~/components/charts/ChartContainer";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "~/components/charts/recharts";
 import api from "~/services/api";
-import { useAuthStore } from "~/store/authStore";
 
 interface PublicElection {
   election_id: string;
@@ -34,7 +43,6 @@ interface ElectionDetail {
 
 export default function ObserverResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, logout } = useAuthStore();
   const [elections, setElections] = useState<PublicElection[]>([]);
   const [electionDetail, setElectionDetail] = useState<ElectionDetail | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -123,22 +131,6 @@ export default function ObserverResultsPage() {
               View live and final results for public elections.
             </p>
           </div>
-          {user ? (
-            <button
-              type="button"
-              onClick={() => logout()}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Logout
-            </button>
-          ) : (
-            <Link
-              to="/auth/login"
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Staff login
-            </Link>
-          )}
         </div>
       </div>
 
@@ -218,35 +210,57 @@ export default function ObserverResultsPage() {
                     : "Results are not available for this election."}
                 </div>
               ) : (
-                groupedResults.map((position) => (
-                  <div
-                    key={position.position}
-                    className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
-                  >
-                    <h3 className="text-lg font-semibold text-slate-900">{position.position}</h3>
-                    <div className="mt-4 space-y-4">
-                      {position.candidates.map((candidate) => {
-                        const percentage = (candidate.votes / maxVotes) * 100;
-                        return (
-                          <div key={candidate.name}>
-                            <div className="mb-2 flex items-center justify-between">
-                              <span className="font-medium text-slate-900">{candidate.name}</span>
-                              <span className="text-sm font-semibold text-blue-600">
-                                {candidate.votes} {candidate.votes === 1 ? "vote" : "votes"}
-                              </span>
-                            </div>
-                            <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
-                              <div
-                                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all"
-                                style={{ width: `${Math.max(percentage, 5)}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                <>
+                  <div className="grid gap-6 xl:grid-cols-2">
+                    {groupedResults.map((position) => (
+                      <ChartCard
+                        key={`${position.position}-chart`}
+                        title={position.position}
+                        subtitle="Vote distribution"
+                      >
+                        <ChartContainer height={280}>
+                          <BarChart data={position.candidates} margin={{ left: 8, right: 8 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="name" fontSize={11} interval={0} angle={-20} textAnchor="end" height={70} />
+                            <YAxis allowDecimals={false} fontSize={12} />
+                            <Tooltip />
+                            <Bar dataKey="votes" fill="#2563eb" radius={[6, 6, 0, 0]} />
+                          </BarChart>
+                        </ChartContainer>
+                      </ChartCard>
+                    ))}
                   </div>
-                ))
+
+                  {groupedResults.map((position) => (
+                    <div
+                      key={position.position}
+                      className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+                    >
+                      <h3 className="text-lg font-semibold text-slate-900">{position.position}</h3>
+                      <div className="mt-4 space-y-4">
+                        {position.candidates.map((candidate) => {
+                          const percentage = (candidate.votes / maxVotes) * 100;
+                          return (
+                            <div key={candidate.name}>
+                              <div className="mb-2 flex items-center justify-between">
+                                <span className="font-medium text-slate-900">{candidate.name}</span>
+                                <span className="text-sm font-semibold text-blue-600">
+                                  {candidate.votes} {candidate.votes === 1 ? "vote" : "votes"}
+                                </span>
+                              </div>
+                              <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all"
+                                  style={{ width: `${Math.max(percentage, 5)}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
           </div>

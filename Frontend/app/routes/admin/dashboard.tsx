@@ -45,8 +45,22 @@ type AdminElection = {
   election_id: string;
   title: string;
   status: string;
+  start_date?: string;
+  end_date?: string;
   electoral_officer?: { email?: string } | null;
   auditors?: Array<{ email?: string }>;
+};
+
+const formatElectionDateTime = (value?: string) => {
+  if (!value) return "Not set";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not set";
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 };
 
 function ChartFallback() {
@@ -198,6 +212,8 @@ export default function AdminDashboard() {
               <StatsCard title="Positions" value={analytics?.positions ?? 0} icon={Target} accent="blue" loading={analyticsLoading} />
               <StatsCard title="Candidates" value={analytics?.candidates ?? 0} icon={Users} accent="purple" loading={analyticsLoading} />
               <StatsCard title="Audit Events" value={analytics?.audit_events ?? 0} icon={Shield} accent="blue" loading={analyticsLoading} />
+              <StatsCard title="Verified Voters" value={analytics?.verification_events ?? 0} icon={UserCheck} accent="green" loading={analyticsLoading} />
+              <StatsCard title="Fraud Attempts" value={analytics?.failed_verification_attempts ?? 0} icon={Shield} accent="orange" loading={analyticsLoading} />
               <StatsCard title="OTP Requests" value={analytics?.otp_requests ?? 0} icon={Activity} accent="orange" loading={analyticsLoading} />
             </div>
           </div>
@@ -365,6 +381,8 @@ export default function AdminDashboard() {
                   <tr className="text-left text-sm text-slate-500">
                     <th className="p-4">Election</th>
                     <th className="p-4">Status</th>
+                    <th className="p-4">Start</th>
+                    <th className="p-4">End</th>
                     <th className="p-4">Officer</th>
                     <th className="p-4">Auditors</th>
                   </tr>
@@ -372,7 +390,7 @@ export default function AdminDashboard() {
                 <tbody>
                   {elections.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="p-6 text-center text-slate-500">
+                      <td colSpan={6} className="p-6 text-center text-slate-500">
                         No elections found.
                       </td>
                     </tr>
@@ -384,6 +402,12 @@ export default function AdminDashboard() {
                           <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold">
                             {election.status}
                           </span>
+                        </td>
+                        <td className="p-4 text-sm text-slate-600">
+                          {formatElectionDateTime(election.start_date)}
+                        </td>
+                        <td className="p-4 text-sm text-slate-600">
+                          {formatElectionDateTime(election.end_date)}
                         </td>
                         <td className="p-4 text-sm">{election.electoral_officer?.email ?? "—"}</td>
                         <td className="p-4 text-sm">

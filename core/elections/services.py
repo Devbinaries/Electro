@@ -51,17 +51,40 @@ def validate_voting_session(session_token,election):
     ).first()
     
     if not session:
+        log_audit(
+            election=election,
+            action="FRAUD_ATTEMPT",
+            metadata={"type": "invalid_session"},
+        )
         raise ValueError("Invalid or expired voting session")
     
     if session.expires_at < timezone.now():
+        log_audit(
+            election=election,
+            voter=session.voter,
+            action="FRAUD_ATTEMPT",
+            metadata={"type": "expired_session_use"},
+        )
         raise ValueError("Voting session expired")
     
     voter = session.voter
     
     if voter.election_id != election.id:
+        log_audit(
+            election=election,
+            voter=voter,
+            action="FRAUD_ATTEMPT",
+            metadata={"type": "cross_election_access"},
+        )
         raise ValueError("Voter not assigned to this session")
 
     if voter.has_voted:
+        log_audit(
+            election=election,
+            voter=voter,
+            action="FRAUD_ATTEMPT",
+            metadata={"type": "repeat_vote_attempt"},
+        )
         raise ValueError("This voter has already voted.")
     
     return session, voter
@@ -75,6 +98,12 @@ def ensure_no_duplicate_vote(election, position, voter):
     ).exists()
     
     if exists:
+        log_audit(
+            election=election,
+            voter=voter,
+            action="FRAUD_ATTEMPT",
+            metadata={"type": "duplicate_position_vote", "position_id": position.id},
+        )
         raise ValueError("You have already voted for this position.")
     
 def validate_candidate(election, position,candidate_id):

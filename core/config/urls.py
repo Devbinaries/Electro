@@ -20,6 +20,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 from rest_framework_simplejwt.views import TokenRefreshView
+from elections.api.auditor_dashboard import AuditorAuditReportExportView
 
 
 urlpatterns = [
@@ -28,6 +29,8 @@ urlpatterns = [
     path('api/authentication/', include("authentication.urls")),
     path('api/accounts/', include("accounts.urls")),
     path('api/voters/', include("voters.urls")),
+    path('api/elections/auditor/elections/<uuid:election_id>/audit-report/export/', AuditorAuditReportExportView.as_view()),
+    path('api/elections/elections/<uuid:election_id>/audit-report/export/', AuditorAuditReportExportView.as_view()),
     path('api/elections/', include("elections.auditor_urls")),
     path('api/elections/', include("elections.officer_urls")),
     path('api/elections/', include("elections.urls")),

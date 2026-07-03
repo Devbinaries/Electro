@@ -7,6 +7,7 @@ from pathlib import Path
 import openpyxl
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.apps import apps
 from django.utils import timezone
 from elections.models import Election, ElectionStatus
 from .models import ElectionVoter, VoteReceipt, VoterVerification, VotingSession
@@ -14,6 +15,19 @@ from .models import ElectionVoter, VoteReceipt, VoterVerification, VotingSession
 MAX_VOTER_IMPORT_SIZE = 15 * 1024 * 1024
 REQUIRED_VOTER_IMPORT_COLUMNS = {"student_id", "first_name", "last_name", "email", "department"}
 ALLOWED_VOTER_IMPORT_EXTENSIONS = {".csv", ".xlsx"}
+
+
+def _audit_log_model():
+    return apps.get_model("elections", "ElectionAuditLog")
+
+
+def log_voter_audit(*, voter, action, metadata=None):
+    return _audit_log_model().objects.create(
+        election=voter.election,
+        voter=voter,
+        action=action,
+        metadata=metadata or {},
+    )
 
 
 def parse_voter_import_file(uploaded_file):
@@ -189,10 +203,20 @@ def verify_otp(voter,otp):
     )
     
     if not verification:
+        log_voter_audit(
+            voter=voter,
+            action="FRAUD_ATTEMPT",
+            metadata={"type": "invalid_otp"},
+        )
         raise ValueError("Invalid verification code")
     
     
     if verification.expires_at < timezone.now():
+        log_voter_audit(
+            voter=voter,
+            action="FRAUD_ATTEMPT",
+            metadata={"type": "expired_otp"},
+        )
         raise ValueError(
             "Verification code expired."
         )
@@ -243,6 +267,12 @@ def create_voting_session(voter):
         voter=voter,
         expires_at = timezone.now()
         + timedelta(minutes=30)
+    )
+
+    log_voter_audit(
+        voter=voter,
+        action="SESSION_CREATED",
+        metadata={"type": "otp_verified"},
     )
        
     return session

@@ -32,6 +32,8 @@ class AdminDashboardElectionSerializer(serializers.ModelSerializer):
             "election_id",
             "title",
             "status",
+            "start_date",
+            "end_date",
             "electoral_officer",
             "auditors",
             "links",

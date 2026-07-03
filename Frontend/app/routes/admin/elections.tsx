@@ -44,6 +44,18 @@ type StaffUser = {
   role: string;
 };
 
+const formatElectionDateTime = (value?: string) => {
+  if (!value) return "Not set";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not set";
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+};
+
 export default function AdminElectionsPage() {
   const [elections, setElections] = useState<AdminElection[]>([]);
   const [officers, setOfficers] = useState<StaffUser[]>([]);
@@ -244,8 +256,8 @@ function ElectionCard({
             <p className="mt-1 text-sm text-slate-600">{election.description}</p>
           )}
           <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500">
-            <span>📅 {new Date(election.start_date).toLocaleDateString()}</span>
-            <span>🏁 {new Date(election.end_date).toLocaleDateString()}</span>
+            <span>Start: {formatElectionDateTime(election.start_date)}</span>
+            <span>End: {formatElectionDateTime(election.end_date)}</span>
           </div>
         </div>
         <button

@@ -86,8 +86,8 @@ export default function OtpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 md:p-8">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-3 py-6 sm:px-4 sm:py-8">
+      <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-lg sm:p-6 md:p-8">
         <button
           onClick={() => navigate("/voter/verify")}
           className="mb-6 text-sm font-medium text-blue-600 hover:text-blue-800"
@@ -95,11 +95,11 @@ export default function OtpPage() {
           ← Back
         </button>
 
-        <h1 className="text-2xl md:text-3xl font-bold text-center text-slate-900 mb-8">
+        <h1 className="mb-8 text-center text-2xl font-bold text-slate-900 md:text-3xl">
           Enter the OTP
         </h1>
 
-        <div className="flex justify-center gap-2 md:gap-3 mb-8">
+        <div className="mb-8 grid grid-cols-6 gap-2 sm:flex sm:justify-center md:gap-3">
           {otp.map((digit, index) => (
             <input
               key={index}
@@ -115,7 +115,7 @@ export default function OtpPage() {
                 handleChange(index, e.target.value)
               }
               onKeyDown={(e) => handleKeyDown(index, e)}
-              className="h-12 w-12 md:h-14 md:w-14 rounded-xl border border-slate-300 text-center text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-300 text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 sm:h-12 sm:w-12 sm:text-xl md:h-14 md:w-14"
             />
           ))}
         </div>

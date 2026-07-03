@@ -90,10 +90,20 @@ def get_election_analytics(election):
     base = get_officer_election_analytics(election)
     audit_logs = ElectionAuditLog.objects.filter(election=election)
     audit_data = _election_audit_chart_data(audit_logs)
+    verified_voters = ElectionVoter.objects.filter(election=election, is_verified=True).count()
+    failed_verifications = audit_logs.filter(action="FRAUD_ATTEMPT").count()
 
     return {
         **base,
         **audit_data,
+        "verification_events": verified_voters,
+        "otp_requests": verified_voters,
+        "failed_verification_attempts": failed_verifications,
+        "suspicious_events": failed_verifications,
+        "verification_breakdown": [
+            {"label": "Success", "count": verified_voters},
+            {"label": "Failure", "count": failed_verifications},
+        ],
         "recent_activity": _build_activity_timeline(election=election, limit=30),
     }
 

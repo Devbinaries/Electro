@@ -121,11 +121,11 @@ export default function VoteBallotPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6">
+    <div className="min-h-screen bg-slate-50 px-3 py-4 sm:px-4 sm:py-6">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-6 rounded-2xl bg-white p-6 shadow">
-          <h1 className="text-3xl font-bold text-slate-900">{electionTitle}</h1>
-          <p className="mt-2 text-slate-600">Select one candidate for each position.</p>
+        <div className="mb-4 rounded-2xl bg-white p-4 shadow sm:mb-6 sm:p-6">
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{electionTitle}</h1>
+          <p className="mt-2 text-sm text-slate-600 sm:text-base">Select one candidate for each position.</p>
         </div>
 
         {error && (
@@ -143,18 +143,18 @@ export default function VoteBallotPage() {
             const selectedCandidate = selectedCandidates[position.position] || "";
 
             return (
-              <div key={position.id} className="mb-6 rounded-2xl bg-white p-6 shadow">
-                <h2 className="mb-4 text-xl font-semibold text-slate-800">{position.position}</h2>
+              <div key={position.id} className="mb-4 rounded-2xl bg-white p-4 shadow sm:mb-6 sm:p-6">
+                <h2 className="mb-4 text-lg font-semibold text-slate-800 sm:text-xl">{position.position}</h2>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                   {position.candidates.map((candidate) => {
                     const isSelected = selectedCandidate === candidate.id;
-                    const isDisabled = selectedCandidate && !isSelected;
+                    const isDisabled = Boolean(selectedCandidate && !isSelected);
 
                     return (
                       <label
                         key={candidate.id}
-                        className={`flex h-full cursor-pointer flex-col justify-between rounded-xl border p-4 transition ${
+                        className={`flex h-full cursor-pointer flex-row items-center gap-3 rounded-xl border p-3 transition sm:flex-col sm:items-stretch sm:justify-between sm:p-4 ${
                           isSelected
                             ? "border-blue-600 bg-blue-50"
                             : isDisabled
@@ -162,17 +162,17 @@ export default function VoteBallotPage() {
                               : "border-slate-200 hover:border-blue-300"
                         }`}
                       >
-                        <div>
+                        <div className="min-w-0 flex-1">
                           {candidate.photo && (
-                            <div className="mb-3 flex justify-center">
+                            <div className="mb-0 flex shrink-0 justify-center sm:mb-3">
                               <img
                                 src={candidate.photo}
                                 alt={candidate.name}
-                                className="h-32 w-32 rounded-full object-cover"
+                                className="h-16 w-16 rounded-full object-cover sm:h-32 sm:w-32"
                               />
                             </div>
                           )}
-                          <h3 className={`font-semibold ${isDisabled ? "text-slate-400" : "text-slate-900"}`}>
+                          <h3 className={`break-words font-semibold ${isDisabled ? "text-slate-400" : "text-slate-900"}`}>
                             {candidate.name}
                           </h3>
                           <p className={`mt-2 text-sm ${isDisabled ? "text-slate-400" : "text-slate-500"}`}>
@@ -191,7 +191,7 @@ export default function VoteBallotPage() {
                             }))
                           }
                           disabled={isDisabled}
-                          className="mt-4 h-5 w-5 self-end disabled:cursor-not-allowed"
+                          className="h-5 w-5 shrink-0 disabled:cursor-not-allowed sm:mt-4 sm:self-end"
                         />
                       </label>
                     );
@@ -205,7 +205,7 @@ export default function VoteBallotPage() {
         <button
           onClick={handleReview}
           disabled={loading || submitting || positions.length === 0}
-          className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {submitting ? "Submitting..." : "Review Vote"}
         </button>

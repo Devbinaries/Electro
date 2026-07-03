@@ -149,13 +149,13 @@ export default function VotePortalPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-8">
-      <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-lg md:p-10">
-        <h1 className="mb-6 text-center text-3xl font-bold text-slate-900 md:text-5xl">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-3 py-6 sm:px-4 sm:py-8">
+      <div className="w-full max-w-2xl rounded-2xl bg-white p-4 shadow-lg sm:p-6 md:p-10">
+        <h1 className="mb-4 text-center text-2xl font-bold text-slate-900 sm:mb-6 sm:text-3xl md:text-5xl">
           {loading ? "Loading…" : title}
         </h1>
 
-        <p className="mb-8 text-center text-sm leading-relaxed text-slate-600 md:text-base">
+        <p className="mb-6 text-center text-sm leading-relaxed text-slate-600 sm:mb-8 md:text-base">
           Welcome to the secure voting portal. Verify your student ID and enter the OTP to cast your ballot.
         </p>
 
@@ -199,8 +199,8 @@ export default function VotePortalPage() {
               <p className="mb-2 text-sm font-medium text-slate-700">
                 Your Verification Code
               </p>
-              <div className="rounded-2xl bg-slate-100 p-6 text-center">
-                <p className="font-mono text-5xl font-bold tracking-[0.3em] text-slate-900">
+              <div className="rounded-2xl bg-slate-100 p-4 text-center sm:p-6">
+                <p className="font-mono text-3xl font-bold tracking-[0.22em] text-slate-900 sm:text-5xl sm:tracking-[0.3em]">
                   {otpCode}
                 </p>
               </div>
@@ -229,7 +229,7 @@ export default function VotePortalPage() {
                 placeholder="000000"
                 disabled={verifying}
                 maxLength={6}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-center font-mono text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-center font-mono text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 sm:text-2xl"
               />
 
               <button

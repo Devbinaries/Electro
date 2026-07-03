@@ -42,9 +42,9 @@ export default function VerifyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 md:p-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-center text-slate-900 mb-6">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-3 py-6 sm:px-4 sm:py-8">
+      <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-lg sm:p-6 md:p-8">
+        <h1 className="mb-6 text-center text-2xl font-bold text-slate-900 md:text-3xl">
           Enter your Student ID
         </h1>
 
@@ -59,9 +59,10 @@ export default function VerifyPage() {
 
         <button
           onClick={handleGetOtp}
-          className="mt-6 w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
+          disabled={isVerifying}
+          className="mt-6 w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Verify
+          {isVerifying ? "Verifying..." : "Verify"}
         </button>
       </div>
 

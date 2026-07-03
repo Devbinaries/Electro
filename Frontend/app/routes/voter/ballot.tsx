@@ -154,15 +154,15 @@ export default function BallotPage() {
   }>;
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6">
+    <div className="min-h-screen bg-slate-50 px-3 py-4 sm:px-4 sm:py-6">
       <div className="mx-auto max-w-4xl">
         {/* Header */}
-        <div className="mb-6 rounded-2xl bg-white p-6 shadow">
-          <h1 className="text-3xl font-bold text-slate-900">
+        <div className="mb-4 rounded-2xl bg-white p-4 shadow sm:mb-6 sm:p-6">
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
             Ballot Paper
           </h1>
 
-          <p className="mt-2 text-slate-600">
+          <p className="mt-2 text-sm text-slate-600 sm:text-base">
             Select one candidate for the position below.
           </p>
         </div>
@@ -182,24 +182,24 @@ export default function BallotPage() {
             return (
               <div
                 key={position.position}
-                className="mb-6 rounded-2xl bg-white p-6 shadow"
+                className="mb-4 rounded-2xl bg-white p-4 shadow sm:mb-6 sm:p-6"
               >
-                <h2 className="mb-4 text-xl font-semibold text-slate-800">
+                <h2 className="mb-4 text-lg font-semibold text-slate-800 sm:text-xl">
                   {position.position}
                 </h2>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                   {position.candidates.map((candidate) => (
                     <label
                       key={candidate.id}
-                      className={`flex h-full cursor-pointer flex-col justify-between rounded-xl border p-4 transition ${
+                      className={`flex h-full cursor-pointer flex-row items-center gap-3 rounded-xl border p-3 transition sm:flex-col sm:items-stretch sm:justify-between sm:p-4 ${
                         selectedCandidate === candidate.id
                           ? "border-blue-600 bg-blue-50"
                           : "border-slate-200 hover:border-blue-300"
                       }`}
                     >
-                      <div>
-                        <h3 className="font-semibold text-slate-900">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="break-words font-semibold text-slate-900">
                           {candidate.name}
                         </h3>
 
@@ -218,7 +218,7 @@ export default function BallotPage() {
                             [position.position]: candidate.id,
                           }))
                         }
-                        className="mt-4 h-5 w-5 self-end"
+                        className="h-5 w-5 shrink-0 sm:mt-4 sm:self-end"
                       />
                     </label>
                   ))}
@@ -231,7 +231,7 @@ export default function BallotPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
           <button
             onClick={handleReview}
-            className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white"
+            className="w-full rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white sm:w-auto"
           >
             Review Vote
           </button>

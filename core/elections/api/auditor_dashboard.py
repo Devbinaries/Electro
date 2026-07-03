@@ -50,6 +50,7 @@ class AuditorDashboardSummaryView(APIView):
                     "links": {
                         "audit_logs": reverse("auditor-election-audit-logs", kwargs={"election_id": election.election_id}, request=request),
                         "fraud": reverse("auditor-election-fraud", kwargs={"election_id": election.election_id}, request=request),
+                        "audit_report_export": reverse("auditor-audit-report-export", kwargs={"election_id": election.election_id}, request=request),
                     },
                 }
             )

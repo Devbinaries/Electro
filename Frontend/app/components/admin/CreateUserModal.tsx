@@ -58,13 +58,13 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
-        <div className="border-b p-6">
-          <h2 className="text-2xl font-bold text-slate-900">Create User</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+      <div className="max-h-[90vh] w-full max-w-sm overflow-hidden rounded-xl bg-white shadow-lg">
+        <div className="border-b px-5 py-4">
+          <h2 className="text-xl font-bold text-slate-900">Create User</h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 p-6">
+        <form onSubmit={handleSubmit} className="max-h-[calc(90vh-65px)] space-y-3 overflow-y-auto px-5 py-4">
           {error && (
             <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
               {error}
@@ -97,7 +97,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-slate-700">First Name</label>
               <input
@@ -166,7 +166,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
             />
           </div>
 
-          <div className="flex gap-3 border-t pt-6">
+          <div className="flex gap-3 border-t pt-4">
             <button
               type="button"
               onClick={onClose}

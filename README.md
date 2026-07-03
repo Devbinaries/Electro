@@ -44,6 +44,9 @@ python manage.py createsuperuser
 ```start backend server locally```
 python manage.py runserver
 
+```Login into Django Admin Dashboard and set role for superuser to admin```
+http://127.0.0.1:8000/admin/
+
 
 ####
 SETUP AND START FRONTEND
